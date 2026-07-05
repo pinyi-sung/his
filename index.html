@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>台灣史小年表 🌸</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FEF9F2;
+  --grid:#F4E7D8;
+  --ink:#5B4A42;
+  --ink-soft:#9A867C;
+  --dutch:#FF9E94;   /* 荷西 珊瑚粉 */
+  --zheng:#FFC163;   /* 明鄭 蜂蜜橘 */
+  --qing:#8FCB94;    /* 清領 抹茶綠 */
+  --japan:#8FBEEC;   /* 日治 蘇打藍 */
+  --roc:#C0A3E8;     /* 民國 薰衣草 */
+  --cn:#F08FB4;      /* 中國對照 莓果粉 */
+  --card-shadow:0 3px 0 rgba(91,74,66,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:'Baloo 2',"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+  color:var(--ink);
+  background:var(--paper);
+  overflow:hidden;
+  display:flex;flex-direction:column;
+}
+/* ---------- header ---------- */
+header{
+  flex:0 0 auto;
+  padding:10px 14px 8px;
+  background:rgba(255,255,255,.82);
+  backdrop-filter:blur(6px);
+  border-bottom:2px dashed var(--grid);
+  z-index:20;
+}
+.title-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+h1{font-size:20px;font-weight:800;letter-spacing:1px}
+h1 .deco{font-size:16px}
+.hint{font-size:12px;color:var(--ink-soft)}
+.toolbar{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center}
+.chip{
+  border:2px solid transparent;border-radius:999px;
+  padding:4px 12px;font-size:13px;font-weight:700;font-family:inherit;
+  cursor:pointer;color:#fff;box-shadow:var(--card-shadow);
+  transition:transform .12s;
+}
+.chip:active{transform:scale(.93)}
+.chip:focus-visible{outline:3px solid #5B4A42;outline-offset:2px}
+.chip.c-dutch{background:var(--dutch)}
+.chip.c-zheng{background:var(--zheng)}
+.chip.c-qing{background:var(--qing)}
+.chip.c-japan{background:var(--japan)}
+.chip.c-roc{background:var(--roc)}
+.zoom-group{margin-left:auto;display:flex;gap:6px}
+.zbtn{
+  width:34px;height:34px;border-radius:12px;border:2px solid var(--grid);
+  background:#fff;font-size:17px;font-weight:800;color:var(--ink);
+  cursor:pointer;box-shadow:var(--card-shadow);font-family:inherit;
+  transition:transform .12s;
+}
+.zbtn:active{transform:scale(.9)}
+.zbtn:focus-visible{outline:3px solid #5B4A42;outline-offset:2px}
+.zbtn.reset{width:auto;padding:0 10px;font-size:13px}
+/* ---------- canvas ---------- */
+#viewport{
+  flex:1 1 auto;position:relative;overflow:hidden;
+  touch-action:none;cursor:grab;
+  background:
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px),
+    var(--paper);
+  background-size:34px 34px,34px 34px,auto;
+}
+#viewport.dragging{cursor:grabbing}
+#world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+/* era washi tape bands */
+.band{
+  position:absolute;height:22px;border-radius:6px;opacity:.30;
+}
+.band::before,.band::after{
+  content:"";position:absolute;top:0;bottom:0;width:8px;
+  background:repeating-linear-gradient(45deg,#fff 0 4px,transparent 4px 8px);
+}
+.band::before{left:0}.band::after{right:0}
+.era-tag{
+  position:absolute;transform:translateX(-50%) rotate(-2deg);
+  padding:5px 16px;border-radius:4px 14px 4px 14px;
+  font-weight:800;font-size:15px;color:#fff;letter-spacing:2px;
+  box-shadow:var(--card-shadow);white-space:nowrap;
+}
+.era-tag small{display:block;font-size:10px;letter-spacing:0;text-align:center;opacity:.9}
+/* axis */
+#axis{position:absolute;height:4px;border-radius:2px;background:var(--ink);opacity:.75}
+.tick{position:absolute;width:2px;height:10px;background:var(--ink-soft);opacity:.6}
+.tick-label{
+  position:absolute;transform:translateX(-50%);
+  font-size:11px;font-weight:700;color:var(--ink-soft);
+}
+.lane-label{
+  position:absolute;font-size:12px;font-weight:800;color:var(--ink-soft);
+  letter-spacing:2px;background:rgba(255,255,255,.8);
+  padding:2px 10px;border-radius:999px;border:2px dashed var(--grid);
+  white-space:nowrap;
+}
+/* events */
+.stem{position:absolute;width:2px;background:var(--ink-soft);opacity:.35}
+.dot{
+  position:absolute;width:12px;height:12px;border-radius:50%;
+  transform:translate(-50%,-50%);border:3px solid #fff;
+  box-shadow:0 0 0 2px rgba(91,74,66,.15);
+}
+.card{
+  position:absolute;transform:translateX(-50%);
+  width:126px;padding:6px 8px 7px;
+  background:#fff;border:2.5px solid;
+  border-radius:14px 4px 14px 4px;
+  box-shadow:var(--card-shadow);
+  text-align:center;cursor:pointer;
+  transition:transform .15s;
+}
+.card:hover{transform:translateX(-50%) scale(1.06) rotate(-1deg);z-index:5}
+.card:focus-visible{outline:3px solid #5B4A42;outline-offset:2px;z-index:5}
+.card .yr{font-size:13px;font-weight:800;letter-spacing:.5px;line-height:1}
+.card .ttl{font-size:12.5px;font-weight:700;line-height:1.25;margin-top:2px}
+.card .emo{font-size:15px;line-height:1}
+/* modal */
+#backdrop{
+  position:fixed;inset:0;background:rgba(91,74,66,.35);
+  display:none;align-items:center;justify-content:center;z-index:50;padding:20px;
+}
+#backdrop.show{display:flex}
+#modal{
+  background:#fff;max-width:400px;width:100%;
+  border:3px solid var(--ink);
+  border-radius:22px 8px 22px 8px;
+  padding:20px 20px 18px;position:relative;
+  box-shadow:6px 6px 0 rgba(91,74,66,.18);
+  animation:pop .18s ease-out;
+}
+@keyframes pop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+#m-tape{
+  position:absolute;top:-14px;left:50%;transform:translateX(-50%) rotate(-2deg);
+  padding:4px 18px;border-radius:4px;color:#fff;font-weight:800;font-size:13px;
+  letter-spacing:2px;box-shadow:var(--card-shadow);
+}
+#m-emo{font-size:34px;text-align:center;margin-top:6px}
+#m-yr{text-align:center;font-size:15px;font-weight:800;color:var(--ink-soft);letter-spacing:1px}
+#m-ttl{text-align:center;font-size:20px;font-weight:800;margin:2px 0 10px}
+#m-desc{font-size:14.5px;line-height:1.75}
+#m-close{
+  display:block;margin:16px auto 0;padding:7px 26px;
+  border-radius:999px;border:2px solid var(--ink);background:#FFEDD9;
+  font-family:inherit;font-weight:800;font-size:14px;color:var(--ink);cursor:pointer;
+  transition:transform .12s;
+}
+#m-close:active{transform:scale(.93)}
+#m-close:focus-visible{outline:3px solid #5B4A42;outline-offset:2px}
+/* ---------- 吉祥物：珍珠 ---------- */
+#mascot{
+  position:absolute;left:22%;width:66px;height:84px;
+  z-index:15;cursor:pointer;user-select:none;
+}
+#mascot .sprite{width:100%;height:100%;transform-origin:50% 100%;transition:transform .15s}
+#mascot.flip .sprite{transform:scaleX(-1)}
+#mascot .body{transform-origin:33px 60px;animation:bob 1.8s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+#mascot .leg-l{transform-origin:27px 58px}
+#mascot .leg-r{transform-origin:39px 58px}
+#mascot.running .body{animation:none;transform:translateY(-2px) rotate(4deg)}
+#mascot.running .leg-l{animation:runA .28s linear infinite}
+#mascot.running .leg-r{animation:runB .28s linear infinite}
+@keyframes runA{0%,100%{transform:rotate(30deg)}50%{transform:rotate(-30deg)}}
+@keyframes runB{0%,100%{transform:rotate(-30deg)}50%{transform:rotate(30deg)}}
+#cheer{
+  position:absolute;bottom:100%;left:50%;
+  transform:translateX(-50%) translateY(6px) scale(.8);
+  background:#fff;border:2.5px solid var(--ink);
+  border-radius:14px 14px 14px 3px;
+  padding:5px 11px;font-size:13px;font-weight:700;white-space:nowrap;
+  opacity:0;pointer-events:none;
+  transition:opacity .2s,transform .2s;
+  box-shadow:var(--card-shadow);
+}
+#cheer.show{opacity:1;transform:translateX(-50%) translateY(-4px) scale(1)}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+@media (max-width:520px){
+  h1{font-size:17px}
+  .hint{display:none}
+  .chip{padding:3px 10px;font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title-row">
+    <h1><span class="deco">🌸</span> 台灣史小年表 <span class="deco">🧋</span></h1>
+    <span class="hint">拖曳移動 ✦ 滾輪／雙指縮放 ✦ 點卡片看說明</span>
+  </div>
+  <div class="toolbar">
+    <button class="chip c-dutch" data-year="1624">荷西</button>
+    <button class="chip c-zheng" data-year="1662">明鄭</button>
+    <button class="chip c-qing" data-year="1690">清領</button>
+    <button class="chip c-japan" data-year="1898">日治</button>
+    <button class="chip c-roc" data-year="1946">民國</button>
+    <div class="zoom-group">
+      <button class="zbtn" id="zin" aria-label="放大">＋</button>
+      <button class="zbtn" id="zout" aria-label="縮小">－</button>
+      <button class="zbtn reset" id="zreset">回原點</button>
+    </div>
+  </div>
+</header>
+
+<div id="viewport" aria-label="台灣史互動年表，可拖曳與縮放">
+  <div id="world"></div>
+  <div id="mascot" role="button" tabindex="0" aria-label="吉祥物珍珠，點一下幫你加油">
+    <div id="cheer"></div>
+    <div class="sprite">
+      <svg viewBox="0 0 66 84" width="66" height="84" xmlns="http://www.w3.org/2000/svg">
+        <!-- 腿 -->
+        <g class="leg leg-l">
+          <rect x="24" y="56" width="6" height="16" rx="3" fill="#8A6A4F"/>
+          <ellipse cx="27" cy="74" rx="6" ry="4" fill="#F49AC2" stroke="#5B4A42" stroke-width="2"/>
+        </g>
+        <g class="leg leg-r">
+          <rect x="36" y="56" width="6" height="16" rx="3" fill="#8A6A4F"/>
+          <ellipse cx="39" cy="74" rx="6" ry="4" fill="#F49AC2" stroke="#5B4A42" stroke-width="2"/>
+        </g>
+        <g class="body">
+          <!-- 吸管 -->
+          <rect x="37" y="-2" width="8" height="20" rx="3.5" fill="#F49AC2" stroke="#5B4A42" stroke-width="2" transform="rotate(10 41 8)"/>
+          <!-- 杯身 -->
+          <path d="M15,14 L51,14 L47,58 Q33,63 19,58 Z" fill="#F6D9AE" stroke="#5B4A42" stroke-width="2.5" stroke-linejoin="round"/>
+          <!-- 珍珠 -->
+          <circle cx="25" cy="53" r="3.2" fill="#5B4A42"/>
+          <circle cx="33" cy="55" r="3.2" fill="#5B4A42"/>
+          <circle cx="41" cy="53" r="3.2" fill="#5B4A42"/>
+          <!-- 杯蓋 -->
+          <rect x="12" y="8" width="42" height="9" rx="4.5" fill="#FFFDF8" stroke="#5B4A42" stroke-width="2.5"/>
+          <!-- 手 -->
+          <rect x="7" y="30" width="12" height="6" rx="3" fill="#F6D9AE" stroke="#5B4A42" stroke-width="2" transform="rotate(28 13 33)"/>
+          <rect x="47" y="30" width="12" height="6" rx="3" fill="#F6D9AE" stroke="#5B4A42" stroke-width="2" transform="rotate(-28 53 33)"/>
+          <!-- 臉 -->
+          <circle cx="26" cy="32" r="2.8" fill="#5B4A42"/>
+          <circle cx="40" cy="32" r="2.8" fill="#5B4A42"/>
+          <circle cx="27" cy="31" r="0.9" fill="#fff"/>
+          <circle cx="41" cy="31" r="0.9" fill="#fff"/>
+          <ellipse cx="21" cy="38" rx="3.2" ry="2" fill="#FFB5A7" opacity=".8"/>
+          <ellipse cx="45" cy="38" rx="3.2" ry="2" fill="#FFB5A7" opacity=".8"/>
+          <path d="M30,38 Q33,41 36,38" fill="none" stroke="#5B4A42" stroke-width="2" stroke-linecap="round"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<div id="backdrop">
+  <div id="modal" role="dialog" aria-modal="true">
+    <div id="m-tape"></div>
+    <div id="m-emo"></div>
+    <div id="m-yr"></div>
+    <div id="m-ttl"></div>
+    <div id="m-desc"></div>
+    <button id="m-close">知道了！</button>
+  </div>
+</div>
+
+<script>
+/* ================= 資料 ================= */
+const ERAS = [
+  {name:"荷西時期", from:1624, to:1662, color:"var(--dutch)", key:"dutch"},
+  {name:"明鄭時期", from:1662, to:1683, color:"var(--zheng)", key:"zheng"},
+  {name:"清領時期", from:1683, to:1895, color:"var(--qing)",  key:"qing"},
+  {name:"日治時期", from:1895, to:1945, color:"var(--japan)", key:"japan"},
+  {name:"中華民國時期", from:1945, to:2010, color:"var(--roc)", key:"roc"},
+];
+function eraOf(y){ for(const e of ERAS){ if(y>=e.from && y<e.to) return e; } return ERAS[ERAS.length-1]; }
+
+/* lane: tw = 台灣（軸上方）, cn = 中國・世界對照（軸下方，1945後） */
+const EVENTS = [
+ // ---- 荷西 ----
+ {y:1624, emo:"🏰", t:"荷蘭佔領南台灣", d:"荷蘭東印度公司佔領大員（今台南安平），興建熱蘭遮城，展開約38年的統治，招募漢人來台開墾、傳教並發展轉口貿易。"},
+ {y:1626, emo:"⛪", t:"西班牙佔北台灣", d:"西班牙人佔領雞籠（基隆）、淡水，建聖薩爾瓦多城等據點，1642年被荷蘭人驅逐，退出台灣。"},
+ {y:1652, emo:"🔥", t:"郭懷一事件", d:"漢人領袖郭懷一因不滿荷蘭人重稅剝削起兵抗荷，事敗被殺，是荷治時期最大規模的漢人反抗事件。"},
+ // ---- 明鄭 ----
+ {y:1662, emo:"⚔️", t:"鄭成功驅逐荷蘭", d:"鄭成功攻下熱蘭遮城，荷蘭人退出台灣，開啟鄭氏三代治台。設承天府，推行屯田，奉明正朔「反清復明」。"},
+ // ---- 清領 ----
+ {y:1683, emo:"🚢", t:"施琅攻台", d:"施琅在澎湖海戰擊敗鄭軍，鄭克塽投降，台灣納入清朝版圖，隔年設一府三縣，隸屬福建省。"},
+ {y:1721, emo:"👑", t:"朱一貴事件", d:"清領時期第一次大民變。「鴨母王」朱一貴起事，一度攻下府城自稱中興王，後被清軍平定。"},
+ {y:1740, emo:"💧", t:"瑠公圳開鑿", d:"郭錫瑠開鑿水圳灌溉台北盆地（大約自1740年代起），後人感念稱為「瑠公圳」，是清代重要水利建設之一。"},
+ {y:1786, emo:"🗡️", t:"林爽文事件", d:"天地會領袖林爽文起事，是清領時期規模最大的民變，清廷派福康安來台才平定。"},
+ {y:1823, emo:"📜", t:"鄭用錫中進士", d:"竹塹（新竹）人鄭用錫考中進士，是第一位以台灣本籍身分中進士者，人稱「開台進士」。"},
+ {y:1858, emo:"⛵", t:"開港通商", d:"英法聯軍後簽訂天津條約，台灣陸續開放安平、淡水、雞籠、打狗等港口，茶、糖、樟腦大量外銷，經濟重心逐漸北移。"},
+ {y:1862, emo:"⚔️", t:"戴潮春事件", d:"戴潮春（戴萬生）起事，歷時約三年，是清領時期歷時最久的民變。"},
+ {y:1871, y2:1874, emo:"🌊", t:"牡丹社事件", d:"琉球漂民被排灣族原住民殺害，日本以此為藉口於1874年出兵台灣。事後清廷態度轉為積極治台，派沈葆楨來台開山撫番、增設行政區。"},
+ {y:1885, emo:"🏛️", t:"台灣建省", d:"中法戰爭後清廷決定台灣建省，劉銘傳出任首任巡撫，推動鐵路、電報、清賦等新政，台北成為政治中心。"},
+ // ---- 日治 ----
+ {y:1895, emo:"📄", t:"馬關條約・乙未抗日", d:"甲午戰爭清廷戰敗，簽馬關條約割讓台灣、澎湖給日本。台灣官紳成立「台灣民主國」抵抗，各地義軍展開乙未抗日，最終仍被日軍平定。"},
+ {y:1896, emo:"⚖️", t:"六三法", d:"日本國會通過「六三法」，授權台灣總督可發布具有法律效力的命令，確立總督集行政、立法、司法、軍事大權於一身的特殊統治（初期為武官總督）。"},
+ {y:1915, emo:"⛩️", t:"噍吧哖事件", d:"又稱西來庵事件，余清芳等人以宗教號召起事，是台灣人最後一次大規模「武裝」抗日，此後轉為政治社會運動路線。"},
+ {y:1919, emo:"🏢", t:"內地延長主義", d:"受一次大戰後民族自決思潮影響，日本改派文官總督，標榜「內地延長主義」同化政策，統治手段轉趨懷柔。"},
+ {y:1921, emo:"📚", t:"台灣文化協會", d:"蔣渭水、林獻堂等人成立台灣文化協會，透過演講、讀報社等啟迪民智；同時期展開「台灣議會設置請願運動」。"},
+ {y:1927, emo:"🗳️", t:"台灣民眾黨成立", d:"文化協會分裂後，蔣渭水等人另組台灣民眾黨，是台灣人成立的第一個政黨。"},
+ {y:1930, emo:"🏹", t:"霧社事件", d:"莫那魯道率賽德克族人起義抗日，遭日方強力鎮壓。此後日本調整理番政策，也是武裝抗日的尾聲。"},
+ {y:1934, emo:"⚡", t:"日月潭發電所完工", d:"日月潭水力發電所完工，提供工業化所需電力，台灣經濟從「工業日本、農業台灣」逐步轉向「工業台灣、農業南洋」。"},
+ {y:1935, emo:"🙋", t:"首次地方議員選舉", d:"台灣舉行史上第一次地方議員選舉（半數官派、半數民選，且有財產限制），台灣人首次體驗有限度的投票。"},
+ {y:1937, emo:"🎌", t:"皇民化運動", d:"中日戰爭爆發後，日本在台推行皇民化運動：說國語（日語）、改日本姓名、參拜神社等，並配合「南進政策」把台灣當作基地。"},
+ {y:1943, emo:"🏫", t:"實施義務教育", d:"日本在台實施六年制國民義務教育，就學率大幅提升（但目的含有戰時動員與同化色彩）。"},
+ {y:1945, emo:"🕊️", t:"日本投降・接收台灣", d:"二次大戰結束，日本投降。國民政府接收台灣，設「台灣省行政長官公署」，由陳儀出任行政長官。"},
+ // ---- 戰後台灣 ----
+ {y:1947, emo:"🕯️", t:"二二八事件", d:"因查緝私菸引發衝突，擴大為全島性的抗爭與鎮壓，造成許多傷亡，對台灣社會與族群關係影響深遠。事後行政長官公署改制為省政府。"},
+ {y:1949, emo:"🚪", t:"政府遷台・戒嚴", d:"國共內戰失利，中華民國政府遷來台灣，同年宣布戒嚴，開始長達38年的戒嚴時期（至1987年），並頒布動員戡亂時期臨時條款相關體制。"},
+ {y:1949, y2:1953, emo:"🌾", t:"土地改革", d:"政府推動三階段土地改革：三七五減租（1949）→ 公地放領（1951）→ 耕者有其田（1953），使農民取得土地、地主轉投資工商業。"},
+ {y:1951, y2:1965, emo:"💰", t:"美援時期", d:"韓戰爆發後美國協防台灣，並自1951年起提供經濟援助（美援）至1965年，協助台灣穩定物價、發展基礎建設與工業。"},
+ {y:1954, y2:1979, emo:"🤝", t:"中美共同防禦條約", d:"中華民國與美國簽訂共同防禦條約，美軍協防台灣；1979年中（共）美建交後條約終止，美國改以《台灣關係法》維持關係。"},
+ {y:1958, emo:"💣", t:"八二三砲戰", d:"共軍猛烈砲擊金門，國軍固守成功，是兩岸最後一次大規模軍事衝突，此後逐漸形成對峙局面。"},
+ {y:1971, emo:"🌐", t:"退出聯合國", d:"聯合國通過第2758號決議，由中華人民共和國取得「中國」席位，中華民國宣布退出聯合國，外交陷入困境。"},
+ {y:1974, emo:"🏗️", t:"十大建設", d:"蔣經國推動十大建設（高速公路、桃園機場、鐵路電氣化、煉鋼、造船、石化等），帶領台灣度過石油危機、升級產業。"},
+ {y:1979, emo:"✊", t:"美麗島事件", d:"《美麗島》雜誌社在高雄舉辦遊行爆發警民衝突，黨外人士遭逮捕審判。同年中美斷交。此事件是台灣民主運動的重要轉捩點。"},
+ {y:1987, emo:"🔓", t:"解除戒嚴", d:"蔣經國宣布解除戒嚴，並開放民眾赴大陸探親；隔年開放報禁、黨禁後政治逐步自由化（民進黨已於1986年成立）。"},
+ {y:1990, emo:"🌸", t:"野百合學運", d:"大學生聚集中正紀念堂，要求解散國民大會、廢除臨時條款、召開國是會議，加速了民主改革的腳步。"},
+ {y:1991, emo:"📕", t:"終止動員戡亂", d:"李登輝總統宣告終止動員戡亂時期、廢除臨時條款，資深中央民代全面退職，國會全面改選，回歸憲政。"},
+ {y:1996, emo:"🗳️", t:"首次總統直選", d:"台灣舉行史上第一次總統直接民選，李登輝當選首任民選總統，台灣民主化的重要里程碑。"},
+ {y:2002, emo:"🌏", t:"加入 WTO", d:"台灣以「台澎金馬個別關稅領域」名義正式加入世界貿易組織（WTO），經濟進一步與國際接軌。"},
+ {y:2008, emo:"✈️", t:"兩岸大三通", d:"兩岸實現全面直接通郵、通商、通航（大三通），交流往來更加密切。"},
+ // ---- 中國・世界對照 ----
+ {y:1949, emo:"🚩", t:"中華人民共和國成立", lane:"cn", d:"中共在國共內戰中獲勝，毛澤東於北京宣布中華人民共和國成立，兩岸從此分治。"},
+ {y:1950, y2:1953, emo:"💥", t:"韓戰爆發", lane:"cn", d:"北韓南侵引發韓戰，美國派第七艦隊協防台灣海峽，台灣的戰略地位因此提升，美援也隨之而來。"},
+ {y:1958, emo:"🏭", t:"大躍進", lane:"cn", d:"中共推動大躍進與人民公社運動，造成嚴重饑荒與經濟倒退。"},
+ {y:1966, y2:1976, emo:"📕", t:"文化大革命", lane:"cn", d:"毛澤東發動文化大革命，長達十年的政治動盪重創中國社會、經濟與文化。"},
+ {y:1967, emo:"🤝", t:"東協（ASEAN）成立", lane:"cn", d:"東南亞國家協會成立（★筆記補充：1967年東南亞國協成立），日後成為區域重要的經濟合作組織。"},
+ {y:1976, emo:"🇻🇳", t:"越南統一", lane:"cn", d:"越戰結束後，南北越於1976年正式統一（★筆記補充），冷戰局勢在東南亞出現重大變化。"},
+ {y:1978, emo:"📈", t:"改革開放", lane:"cn", d:"鄧小平推動改革開放，設經濟特區、引進外資，中國經濟開始快速成長。"},
+ {y:1989, emo:"🕯️", t:"六四天安門事件", lane:"cn", d:"北京學生與民眾在天安門廣場要求民主改革，遭中共出動軍隊武力鎮壓，震驚國際。"},
+ {y:2001, emo:"🌏", t:"中國加入 WTO", lane:"cn", d:"中國正式加入世界貿易組織，隔年（2002）台灣也接著加入。"},
+];
+
+/* ================= 座標 ================= */
+/* 1624–1900 每年 8px；1900 之後每年 30px（後段事件較密） */
+const X0 = 60;
+function xOf(y){
+  if(y <= 1900) return X0 + (y - 1624) * 8;
+  return X0 + (1900 - 1624) * 8 + (y - 1900) * 30;
+}
+const WORLD_W = xOf(2010) + 160;
+const AXIS_Y = 420, ROW_H = 78, CARD_W = 126, WORLD_H = 700;
+
+/* 簡單防重疊：同一側依 x 排序，塞進最低可用列 */
+function layoutRows(list){
+  const ends = [];
+  list.sort((a,b)=>xOf(a.y)-xOf(b.y));
+  for(const ev of list){
+    const x = xOf(ev.y);
+    let r = 0;
+    while(r < ends.length && x - CARD_W/2 < ends[r] + 10) r++;
+    ev.row = r;
+    ends[r] = x + CARD_W/2;
+  }
+}
+layoutRows(EVENTS.filter(e=>e.lane!=="cn"));
+layoutRows(EVENTS.filter(e=>e.lane==="cn"));
+
+/* ================= 繪製 ================= */
+const world = document.getElementById("world");
+world.style.width = WORLD_W+"px";
+world.style.height = WORLD_H+"px";
+let html = "";
+
+/* 時代膠帶 + 標籤 */
+for(const e of ERAS){
+  const x1 = xOf(e.from), x2 = xOf(e.to);
+  html += `<div class="band" style="left:${x1}px;width:${x2-x1}px;top:${AXIS_Y-9}px;background:${e.color}"></div>`;
+  html += `<div class="era-tag" style="left:${(x1+x2)/2}px;top:14px;background:${e.color}">${e.name}<small>${e.from} – ${e.to===2010?"":e.to}</small></div>`;
+}
+
+/* 軸線與刻度 */
+html += `<div id="axis" style="left:${xOf(1624)-20}px;width:${xOf(2010)-xOf(1624)+40}px;top:${AXIS_Y-2}px"></div>`;
+for(let y=1640; y<=2010; y+= (y<1900?20:10)){
+  html += `<div class="tick" style="left:${xOf(y)}px;top:${AXIS_Y+6}px"></div>
+           <div class="tick-label" style="left:${xOf(y)}px;top:${AXIS_Y+18}px">${y}</div>`;
+}
+/* 車道標籤 */
+html += `<div class="lane-label" style="left:${xOf(1946)}px;top:${AXIS_Y-190}px">🌱 台灣</div>`;
+html += `<div class="lane-label" style="left:${xOf(1946)}px;top:${AXIS_Y+120}px">🐉 中國・世界對照</div>`;
+
+/* 事件 */
+EVENTS.forEach((ev,i)=>{
+  const x = xOf(ev.y);
+  const era = ev.lane==="cn" ? null : eraOf(ev.y);
+  const color = ev.lane==="cn" ? "var(--cn)" : era.color;
+  const cardH = 62;
+  let cardTop, stemTop, stemH;
+  if(ev.lane==="cn"){
+    cardTop = AXIS_Y + 40 + ev.row*ROW_H;
+    stemTop = AXIS_Y; stemH = cardTop - AXIS_Y;
+  }else{
+    cardTop = AXIS_Y - 40 - cardH - ev.row*ROW_H;
+    stemTop = cardTop + cardH; stemH = AXIS_Y - stemTop;
+  }
+  const yrText = ev.y2 ? `${ev.y}–${ev.y2}` : ev.y;
+  html += `<div class="stem" style="left:${x-1}px;top:${stemTop}px;height:${stemH}px"></div>`;
+  html += `<div class="dot" style="left:${x}px;top:${AXIS_Y}px;background:${color}"></div>`;
+  html += `<div class="card" role="button" tabindex="0" data-i="${i}"
+             style="left:${x}px;top:${cardTop}px;border-color:${color}">
+             <div class="yr" style="color:${color.replace("var(","var(")}">${ev.emo} ${yrText}</div>
+             <div class="ttl">${ev.t}</div>
+           </div>`;
+});
+world.innerHTML = html;
+
+/* ================= 縮放平移 ================= */
+const vp = document.getElementById("viewport");
+const S = {x:20, y:0, s:1, min:.3, max:3};
+
+function apply(){
+  world.style.transform = `translate(${S.x}px,${S.y}px) scale(${S.s})`;
+  updateMascot();
+}
+/* ---------- 吉祥物「珍珠」 ---------- */
+const mascot = document.getElementById("mascot");
+const cheerEl = document.getElementById("cheer");
+function updateMascot(){
+  const axisScreenY = S.y + AXIS_Y*S.s;               // 站在時間軸上
+  const y = Math.min(vp.clientHeight-46, Math.max(70, axisScreenY));
+  mascot.style.top = (y - 80) + "px";
+}
+let runTimer = null;
+function setRun(dx){
+  if(Math.abs(dx) > 0.5) mascot.classList.toggle("flip", dx > 0);
+  mascot.classList.add("running");
+  clearTimeout(runTimer);
+  runTimer = setTimeout(()=>mascot.classList.remove("running"), 200);
+}
+const CHEERS = ["加油加油！💪","背起來就是你的！✨","年份用口訣記更快唷","休息5分鐘再衝～","會考穩了啦！🎉",
+                "喝口水繼續！🧋","荷→鄭→清→日→民國！","你今天也超棒的！🌸","再複習一個時代吧！"];
+let cheerTimer = null;
+function cheer(msg){
+  cheerEl.textContent = msg || CHEERS[Math.floor(Math.random()*CHEERS.length)];
+  cheerEl.classList.add("show");
+  clearTimeout(cheerTimer);
+  cheerTimer = setTimeout(()=>cheerEl.classList.remove("show"), 1900);
+}
+mascot.addEventListener("pointerdown", e=>e.stopPropagation());
+mascot.addEventListener("click", ()=>cheer());
+mascot.addEventListener("keydown", e=>{
+  if(e.key==="Enter"||e.key===" "){ e.preventDefault(); cheer(); }
+});
+setTimeout(()=>cheer("嗨！我是珍珠 🧋 一起讀歷史吧！"), 900);
+function clamp(){
+  S.s = Math.min(S.max, Math.max(S.min, S.s));
+  const vw = vp.clientWidth, vh = vp.clientHeight;
+  const w = WORLD_W*S.s, h = WORLD_H*S.s;
+  S.x = Math.min(80, Math.max(vw - w - 80, S.x));
+  S.y = Math.min(80, Math.max(vh - h - 80, S.y));
+  if(h < vh) S.y = (vh - h)/2;           // 世界比視窗矮 → 垂直置中
+}
+function zoomAt(cx, cy, factor){
+  const ns = Math.min(S.max, Math.max(S.min, S.s*factor));
+  const k = ns/S.s;
+  S.x = cx - (cx - S.x)*k;
+  S.y = cy - (cy - S.y)*k;
+  S.s = ns;
+  clamp(); apply();
+}
+function fitStart(){
+  const vw = vp.clientWidth, vh = vp.clientHeight;
+  S.s = Math.min(1, Math.max(.55, vw/1500));
+  S.x = 20;
+  S.y = (vh - WORLD_H*S.s)/2;
+  clamp(); apply();
+}
+fitStart();
+window.addEventListener("resize", ()=>{clamp();apply();});
+
+/* 滾輪縮放 */
+vp.addEventListener("wheel", e=>{
+  e.preventDefault();
+  const r = vp.getBoundingClientRect();
+  zoomAt(e.clientX-r.left, e.clientY-r.top, Math.exp(-e.deltaY*0.0016));
+},{passive:false});
+
+/* 指標拖曳 + 雙指捏合 */
+const pts = new Map();
+let lastMid=null, lastDist=0, moved=0;
+vp.addEventListener("pointerdown", e=>{
+  vp.setPointerCapture(e.pointerId);
+  pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  moved = 0;
+  vp.classList.add("dragging");
+  if(pts.size===2){
+    const [a,b]=[...pts.values()];
+    lastDist = Math.hypot(a.x-b.x,a.y-b.y);
+    lastMid = {x:(a.x+b.x)/2, y:(a.y+b.y)/2};
+  }
+});
+vp.addEventListener("pointermove", e=>{
+  if(!pts.has(e.pointerId)) return;
+  const prev = pts.get(e.pointerId);
+  pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pts.size===1){
+    S.x += e.clientX - prev.x;
+    S.y += e.clientY - prev.y;
+    moved += Math.abs(e.clientX-prev.x)+Math.abs(e.clientY-prev.y);
+    setRun(e.clientX - prev.x);
+    clamp(); apply();
+  }else if(pts.size===2){
+    const [a,b]=[...pts.values()];
+    const dist = Math.hypot(a.x-b.x,a.y-b.y);
+    const mid = {x:(a.x+b.x)/2, y:(a.y+b.y)/2};
+    const r = vp.getBoundingClientRect();
+    if(lastDist>0) zoomAt(mid.x-r.left, mid.y-r.top, dist/lastDist);
+    S.x += mid.x-lastMid.x; S.y += mid.y-lastMid.y;
+    clamp(); apply();
+    lastDist = dist; lastMid = mid; moved += 10;
+  }
+});
+function endPtr(e){
+  pts.delete(e.pointerId);
+  if(pts.size<2){lastDist=0;lastMid=null;}
+  if(pts.size===0) vp.classList.remove("dragging");
+}
+vp.addEventListener("pointerup", endPtr);
+vp.addEventListener("pointercancel", endPtr);
+
+/* 鍵盤 */
+window.addEventListener("keydown", e=>{
+  if(document.getElementById("backdrop").classList.contains("show")){
+    if(e.key==="Escape") closeModal();
+    return;
+  }
+  const step = 60;
+  if(e.key==="ArrowLeft"){S.x+=step;clamp();apply();}
+  if(e.key==="ArrowRight"){S.x-=step;clamp();apply();}
+  if(e.key==="ArrowUp"){S.y+=step;clamp();apply();}
+  if(e.key==="ArrowDown"){S.y-=step;clamp();apply();}
+  if(e.key==="+"||e.key==="="){zoomAt(vp.clientWidth/2,vp.clientHeight/2,1.2);}
+  if(e.key==="-"){zoomAt(vp.clientWidth/2,vp.clientHeight/2,1/1.2);}
+});
+
+/* 按鈕 */
+document.getElementById("zin").onclick = ()=>zoomAt(vp.clientWidth/2,vp.clientHeight/2,1.25);
+document.getElementById("zout").onclick = ()=>zoomAt(vp.clientWidth/2,vp.clientHeight/2,1/1.25);
+document.getElementById("zreset").onclick = fitStart;
+document.querySelectorAll(".chip[data-year]").forEach(btn=>{
+  btn.onclick = ()=>{
+    const y = +btn.dataset.year;
+    S.s = Math.max(S.s, .9);
+    S.x = vp.clientWidth*0.25 - xOf(y)*S.s;
+    S.y = (vp.clientHeight - WORLD_H*S.s)/2;
+    clamp(); apply();
+    setRun(-1);
+    cheer(`出發去${btn.textContent}時期！🏃`);
+  };
+});
+
+/* ================= 說明卡 ================= */
+const backdrop = document.getElementById("backdrop");
+function openModal(i){
+  const ev = EVENTS[i];
+  const era = ev.lane==="cn" ? {name:"中國・世界", color:"var(--cn)"} : eraOf(ev.y);
+  document.getElementById("m-tape").textContent = era.name;
+  document.getElementById("m-tape").style.background = era.color;
+  document.getElementById("m-emo").textContent = ev.emo;
+  document.getElementById("m-yr").textContent = ev.y2 ? `${ev.y} – ${ev.y2}` : ev.y;
+  document.getElementById("m-ttl").textContent = ev.t;
+  document.getElementById("m-desc").textContent = ev.d;
+  backdrop.classList.add("show");
+  document.getElementById("m-close").focus();
+}
+function closeModal(){ backdrop.classList.remove("show"); }
+document.getElementById("m-close").onclick = closeModal;
+backdrop.addEventListener("click", e=>{ if(e.target===backdrop) closeModal(); });
+
+world.addEventListener("click", e=>{
+  const c = e.target.closest(".card");
+  if(c && moved < 8) openModal(+c.dataset.i);
+});
+world.addEventListener("keydown", e=>{
+  const c = e.target.closest(".card");
+  if(c && (e.key==="Enter"||e.key===" ")){ e.preventDefault(); openModal(+c.dataset.i); }
+});
+</script>
+</body>
+</html>

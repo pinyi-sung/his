@@ -849,7 +849,7 @@ const pts = new Map();
 let lastMid=null, lastDist=0, moved=0;
 let downCard=null, downX=0, downY=0;
 vp.addEventListener("pointerdown", e=>{
-  vp.setPointerCapture(e.pointerId);
+  try{ vp.setPointerCapture(e.pointerId); }catch(_){}
   pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
   moved = 0;
   downX = e.clientX; downY = e.clientY;
@@ -883,14 +883,18 @@ vp.addEventListener("pointermove", e=>{
   }
 });
 function endPtr(e){
+  try{ vp.releasePointerCapture(e.pointerId); }catch(_){}
   pts.delete(e.pointerId);
   if(pts.size<2){lastDist=0;lastMid=null;}
   if(pts.size===0){
     vp.classList.remove("dragging");
     const dist = Math.hypot(e.clientX-downX, e.clientY-downY);
+    // 幾乎沒拖動 → 視為點擊。用放開座標實際找卡片（不依賴 e.target，
+    // 因為桌機 setPointerCapture 會把 e.target 指向 viewport）
     if(downCard && dist < 8){
-      const up = e.target.closest(".card");
-      if(up === downCard) openModal(+downCard.dataset.i);
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const up = el && el.closest ? el.closest(".card") : null;
+      if(up === downCard || up === null) openModal(+downCard.dataset.i);
     }
     downCard = null;
   }
